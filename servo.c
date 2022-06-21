@@ -7,13 +7,16 @@
 #include <unistd.h>
 #include <stdbool.h>
 #include <math.h>
+#include <stdlib.h>
+#include <stdint.h>
 
-#define PWM_Pin 25
+#define PWM_Pin 27
 #define PWM_Start 13
 #define PWM_Range 200
 
 int error;
 char filePath[] = "/tmp/FIFO_Sensors";
+char filePathCam[] = "/tmp/FIFO_Cam";
 struct Sensor_Packet packet;
 
 void motorInit() {
@@ -88,12 +91,13 @@ int main() {
 		return -1;
 	}
 	int fd = FIFO_Open(filePath, 0);
+	int fd_cam = FIFO_Open(filePathCam, 0);
 	int ret;
-	double angle;
+	int16_t angle;
 	motorInit();
 	
 	while(1) {
-		ret = read(fd, &packet, sizeof(struct Sensor_Packet));
+		ret = read(fd, &packet, sizeof(struct Sensor_Packet));	
 		if(ret == -1) {
 			error = errno;
 			printf("Error code: %d\t reading sensor data\n", error);
@@ -102,6 +106,13 @@ int main() {
 			printf("Received only %d of %d bytes\n", ret, sizeof(struct Sensor_Packet));
 			return -1;
 		}
+		ret = read(fd_cam, &angle, sizeof(int16_t));
+		if(ret == -1) {
+			error = errno;
+			printf("Error code: %d\t reading camera data\n", error);
+			return -1;
+		}
+		
 		if(packet.S2 < 50) {
 			if(packet.S1 < packet.S3) {
 				angle = 20;
@@ -109,17 +120,27 @@ int main() {
 				angle = -20;
 			}
 		}
-		printf("S1: %f\nS2: %f\nS3: %f\nI1: %d\nI2: %d\n\n", packet.S1, packet.S2, packet.S3, packet.I1, packet.I2);
+		//printf("S1: %f\nS2: %f\nS3: %f\nI1: %d\nI2: %d\n\n", packet.S1, packet.S2, packet.S3, packet.I1, packet.I2);
+		printf("%d\n", angle);
 		if(packet.S2 < 10) {
 			set_speed = 0;
 		} else {
 			set_speed = 100;
 		}
-		/*std::cin >> temp;
-		if (temp == -1) {
-			break;
+		
+		if(angle > 135 || angle < 45) {
+			continue;
 		}
-		softPwmWrite(PWM_Pin, temp);*/
+		angle -= 90;
+		if(angle > 20) {
+			angle = 20;
+		} else if(angle < -20) {
+			angle = -20;
+		}
+		angle *= 0.25;
+		angle += 13;
+		printf("temp: %d\n\n", angle);
+		softPwmWrite(PWM_Pin, angle);
 	}
 	softPwmStop(PWM_Pin);
 	return 0;
