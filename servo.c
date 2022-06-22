@@ -74,7 +74,7 @@ void readEncoder (void) {
 	if (u > 1023) {
 		u = 1023;
 	}
-	setMotor(dir, u);
+	setMotor(1, 80);
 	prevError = error;
 }
 
@@ -106,12 +106,14 @@ int main() {
 			printf("Received only %d of %d bytes\n", ret, sizeof(struct Sensor_Packet));
 			return -1;
 		}
-		ret = read(fd_cam, &angle, sizeof(int16_t));
-		if(ret == -1) {
-			error = errno;
-			printf("Error code: %d\t reading camera data\n", error);
-			return -1;
-		}
+		do {
+			ret = read(fd_cam, &angle, sizeof(int16_t));
+			if(ret == -1) {
+				error = errno;
+				printf("Error code: %d\t reading camera data\n", error);
+				return -1;
+			}
+		} while(ret != 0);
 		
 		if(packet.S2 < 50) {
 			if(packet.S1 < packet.S3) {
@@ -122,13 +124,13 @@ int main() {
 		}
 		//printf("S1: %f\nS2: %f\nS3: %f\nI1: %d\nI2: %d\n\n", packet.S1, packet.S2, packet.S3, packet.I1, packet.I2);
 		printf("%d\n", angle);
-		if(packet.S2 < 10) {
+		/*if(packet.S2 < 10) {
 			set_speed = 0;
 		} else {
 			set_speed = 100;
-		}
+		}*/
 		
-		if(angle > 135 || angle < 45) {
+		if(angle > 180 || angle < 0) {
 			continue;
 		}
 		angle -= 90;

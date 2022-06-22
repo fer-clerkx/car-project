@@ -7,7 +7,7 @@
 #define IN2 22
 #define MOTOR_PWM 23
 
-float set_speed = 500;
+float set_speed = 10;
 const float kp = 50;
 const float ki = 25;
 //const float kd = 0;
